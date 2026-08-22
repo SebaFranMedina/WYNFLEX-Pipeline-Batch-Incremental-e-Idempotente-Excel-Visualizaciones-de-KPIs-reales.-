@@ -6,6 +6,15 @@ RAW_DIR = Path("data/raw")
 SILVER_DIR = Path("data/silver")
 
 
+SUMMARY_ROWS = [
+    "Resumen de Envíos",
+    "Total de envíos",
+    "Monto bruto",
+    "Descuento (%)",
+    "Neto final a cobrar"
+]
+
+
 def transform_file(file_path):
     print(f"\nTransformando: {file_path.name}")
 
@@ -16,6 +25,9 @@ def transform_file(file_path):
 
     # Eliminar filas sin número de tracking
     df = df.dropna(subset=["numero_tracking"])
+
+    # Eliminar filas de resumen del Excel
+    df = df[~df["numero_tracking"].isin(SUMMARY_ROWS)]
 
     # Convertir fechas
     df["fecha_colecta"] = pd.to_datetime(
@@ -41,13 +53,17 @@ def transform_file(file_path):
 
     for column in text_columns:
         if column in df.columns:
-            df[column] = df[column].astype("string").str.strip()
+            df[column] = (
+                df[column]
+                .astype("string")
+                .str.strip()
+            )
 
     # Normalizar código postal
     if "cp" in df.columns:
         df["cp"] = df["cp"].astype("Int64")
 
-    # Eliminar duplicados exactos de tracking
+    # Eliminar duplicados de tracking dentro de cada archivo
     df = df.drop_duplicates(
         subset=["numero_tracking"],
         keep="first"
