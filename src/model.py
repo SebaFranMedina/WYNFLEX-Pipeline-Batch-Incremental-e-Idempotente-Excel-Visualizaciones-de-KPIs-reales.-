@@ -1,13 +1,15 @@
 from datetime import datetime
+import os
+
 import psycopg2
 
 
 DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "wynflex",
-    "user": "wynflex",
-    "password": "wynflex",
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", "5432")),
+    "database": os.getenv("DB_NAME", "wynflex"),
+    "user": os.getenv("DB_USER", "wynflex"),
+    "password": os.getenv("DB_PASSWORD", "wynflex"),
 }
 
 
@@ -54,7 +56,6 @@ def populate_dimensions(conn):
     """)
 
     conn.commit()
-
     cursor.close()
 
 
@@ -76,7 +77,6 @@ def populate_dates(conn):
     """)
 
     rows = cursor.fetchall()
-
     dates = set()
 
     for row in rows:
@@ -123,7 +123,6 @@ def populate_dates(conn):
         )
 
     conn.commit()
-
     cursor.close()
 
 
@@ -230,7 +229,6 @@ def populate_fact_table(conn):
         )
 
     conn.commit()
-
     cursor.close()
 
     print(f"  Filas insertadas en fact_entregas: {len(rows)}")
@@ -262,7 +260,10 @@ def show_results(conn):
 
 
 def main():
-    print("Conectando a PostgreSQL...")
+    print(
+        f"Conectando a PostgreSQL en "
+        f"{DB_CONFIG['host']}:{DB_CONFIG['port']}..."
+    )
 
     conn = get_connection()
 

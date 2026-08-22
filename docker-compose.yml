@@ -12,5 +12,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  pipeline:
+    build: .
+    container_name: wynflex_pipeline
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: wynflex
+      DB_USER: wynflex
+      DB_PASSWORD: wynflex
+    volumes:
+      - ./data:/app/data
+
 volumes:
   postgres_data:
