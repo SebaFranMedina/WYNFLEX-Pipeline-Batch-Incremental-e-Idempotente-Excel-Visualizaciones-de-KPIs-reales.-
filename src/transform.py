@@ -1,9 +1,11 @@
 from pathlib import Path
+import shutil
 import pandas as pd
 
 
 RAW_DIR = Path("data/raw")
 SILVER_DIR = Path("data/silver")
+PROCESSED_DIR = Path("data/processed")
 
 
 SUMMARY_ROWS = [
@@ -82,21 +84,36 @@ def main():
         return
 
     SILVER_DIR.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     print(f"Archivos encontrados: {len(files)}")
 
     for file_path in files:
-        df = transform_file(file_path)
+        try:
+            df = transform_file(file_path)
 
-        output_name = file_path.stem + ".parquet"
-        output_path = SILVER_DIR / output_name
+            output_name = file_path.stem + ".parquet"
+            output_path = SILVER_DIR / output_name
 
-        df.to_parquet(
-            output_path,
-            index=False
-        )
+            # Guardar Parquet
+            df.to_parquet(
+                output_path,
+                index=False
+            )
 
-        print(f"  Guardado: {output_path}")
+            # Mover Excel solamente después de guardar correctamente
+            processed_path = PROCESSED_DIR / file_path.name
+            shutil.move(
+                str(file_path),
+                str(processed_path)
+            )
+
+            print(f"  Guardado: {output_path}")
+            print(f"  Movido a: {processed_path}")
+
+        except Exception as error:
+            print(f"  ERROR procesando {file_path.name}: {error}")
+            print("  El archivo permanece en data/raw/")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,9 @@ __pycache__/
 
 .env
 
+data/raw/
 data/silver/
 data/gold/
-data/raw/
+data/processed/
+
 *.log
