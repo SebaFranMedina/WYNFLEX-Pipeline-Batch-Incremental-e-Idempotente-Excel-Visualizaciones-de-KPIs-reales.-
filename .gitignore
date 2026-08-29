@@ -11,3 +11,18 @@ data/gold/
 data/processed/
 
 *.log
+
+# Datos reales y archivos generados
+data/
+
+# Cache geográfico con datos de direcciones
+notebooks/geocoding_cache.csv
+
+# Checkpoints de Jupyter
+notebooks/.ipynb_checkpoints/
+
+# Archivos HTML generados
+*.html
+
+# Metadatos de Windows
+*:Zone.Identifier

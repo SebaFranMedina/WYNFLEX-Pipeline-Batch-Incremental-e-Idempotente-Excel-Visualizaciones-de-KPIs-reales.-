@@ -49,18 +49,27 @@ def create_table(engine):
         connection.execute(query)
 
 
-def clear_table(engine):
-    """Limpia los datos anteriores antes de una nueva carga."""
+def get_loaded_files(engine):
+    """Obtiene los archivos que ya fueron cargados en PostgreSQL."""
 
-    print("Limpiando tabla deliveries...")
+    query = text(
+        f"""
+        SELECT DISTINCT source_file
+        FROM {TABLE_NAME}
+        WHERE source_file IS NOT NULL;
+        """
+    )
 
-    with engine.begin() as connection:
-        connection.execute(
-            text(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
-        )
+    with engine.connect() as connection:
+        return {
+            row[0]
+            for row in connection.execute(query)
+        }
 
 
 def load_file(file_path, engine):
+    """Carga un Parquet nuevo en PostgreSQL."""
+
     print(f"\nCargando: {file_path.name}")
 
     df = pd.read_parquet(file_path)
@@ -68,12 +77,13 @@ def load_file(file_path, engine):
     # Guardamos el archivo de origen para trazabilidad
     df["source_file"] = file_path.name
 
-    df.to_sql(
-        TABLE_NAME,
-        engine,
-        if_exists="append",
-        index=False,
-    )
+    with engine.begin() as connection:
+        df.to_sql(
+            TABLE_NAME,
+            connection,
+            if_exists="append",
+            index=False,
+        )
 
     print(f"  Filas cargadas: {len(df):,}")
 
@@ -82,23 +92,40 @@ def main():
     files = sorted(SILVER_DIR.glob("*.parquet"))
 
     if not files:
-        print(f"No se encontraron archivos Parquet en: {SILVER_DIR}")
+        print(
+            f"No se encontraron archivos Parquet en: "
+            f"{SILVER_DIR}"
+        )
         return
 
-    print(f"Conectando a PostgreSQL en: {DB_HOST}:{DB_PORT}")
+    print(
+        f"Conectando a PostgreSQL en: "
+        f"{DB_HOST}:{DB_PORT}"
+    )
 
     engine = create_engine(DATABASE_URL)
 
     create_table(engine)
 
-    clear_table(engine)
+    loaded_files = get_loaded_files(engine)
 
-    print(f"Archivos encontrados: {len(files)}")
+    print(f"\nArchivos ya cargados: {len(loaded_files)}")
+    print(f"Archivos encontrados en Silver: {len(files)}")
+
+    new_files = []
 
     for file_path in files:
+        if file_path.name in loaded_files:
+            print(f"⏭️  Ya cargado: {file_path.name}")
+        else:
+            new_files.append(file_path)
+
+    print(f"\nArchivos nuevos para cargar: {len(new_files)}")
+
+    for file_path in new_files:
         load_file(file_path, engine)
 
-    print("\nCarga finalizada.")
+    print("\nCarga incremental finalizada.")
 
 
 if __name__ == "__main__":
