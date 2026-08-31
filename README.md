@@ -617,12 +617,12 @@ El pipeline fue evolucionando mediante la incorporación de reportes semanales.
 
 Actualmente PostgreSQL contiene:
 
-```text
+
 .github/
 └── workflows/
     └── ci.yml
 1.254 entregas
-```
+
 
 data/
 ├── raw/
@@ -639,9 +639,9 @@ Durante el procesamiento geográfico actual se identificaron:
 sql/
 ├── analytics.sql
 └── create_dimensional_model.sql
-```text
+
 1.338 direcciones únicas
-```
+
 
 src/
 ├── extract.py
@@ -663,13 +663,13 @@ docker-compose.yml
 pytest.ini
 requirements.txt
 README.md
-```text
+
 Entregado
 Entregado 2DA visita
 En camino al destinatario
 En camino reprogramado
 Nadie
-```
+
 
 ---
 
