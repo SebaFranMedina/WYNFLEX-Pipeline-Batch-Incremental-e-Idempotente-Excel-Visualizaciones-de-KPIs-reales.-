@@ -611,37 +611,15 @@ outputs/visualizaciones/
 ---
 
 ## 📁 Estructura del proyecto
-# 📈 Datos actuales
 
-El pipeline fue evolucionando mediante la incorporación de reportes semanales.
-
-Actualmente PostgreSQL contiene:
-
-
-.github/
-└── workflows/
-    └── ci.yml
-1.254 entregas
-
-
-data/
-├── raw/
-├── processed/
-├── silver/
-└── gold/
-Luego se incorporaron nuevas cargas para continuar la evolución del dataset.
-
+```text
 notebooks/
 ├── 01_wynflex_analytics.ipynb
 └── geocoding_cache.csv
-Durante el procesamiento geográfico actual se identificaron:
 
 sql/
 ├── analytics.sql
 └── create_dimensional_model.sql
-
-1.338 direcciones únicas
-
 
 src/
 ├── extract.py
@@ -652,25 +630,32 @@ src/
 ├── visualizations.py
 ├── inspect_excel.py
 └── test_geocoding.py
-La cantidad de direcciones puede ser mayor al número de archivos debido a que una misma dirección puede aparecer en distintas entregas y semanas.
 
 tests/
 └── test_transform.py
-Estados operativos encontrados:
 
 Dockerfile
 docker-compose.yml
 pytest.ini
 requirements.txt
 README.md
+```
 
-Entregado
-Entregado 2DA visita
-En camino al destinatario
-En camino reprogramado
-Nadie
+## 📈 Datos actuales
 
+El pipeline fue evolucionando mediante la incorporación de reportes semanales.
 
+- **Entregas registradas en PostgreSQL:** 1.254 (con nuevas cargas incorporadas progresivamente para continuar la evolución del dataset).
+- **Direcciones únicas identificadas** durante el procesamiento geográfico: 1.338.
+
+> La cantidad de direcciones puede ser mayor al número de entregas, ya que una misma dirección puede repetirse en distintas entregas y semanas.
+
+**Estados operativos encontrados:**
+- Entregado
+- Entregado 2DA visita
+- En camino al destinatario
+- En camino reprogramado
+- Nadie
 ---
 
 ## 🧪 Tests
