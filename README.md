@@ -1,28 +1,24 @@
-# WYNFLEX — Data Engineering & Analytics Pipeline
+WYNFLEX — Data Engineering & Analytics Pipeline
 
-Pipeline de **Data Engineering y Analytics** desarrollado a partir de archivos Excel provenientes de una operación logística real.
+Pipeline de Data Engineering y Analytics creado desde cero a partir de los conocimientos adquiridos durante mi formación en Data Engineering, aplicado a un caso real de una operación logística.
 
-El proyecto transforma reportes operativos semanales en un flujo de datos reproducible para consolidar entregas, realizar análisis operativos y generar información útil para reporting y toma de decisiones.
+El proyecto transforma reportes operativos semanales en Excel en un flujo de datos reproducible para consolidar entregas, realizar análisis operativos y generar información útil para reporting y toma de decisiones.
 
 Actualmente implementa:
 
-* ETL batch con Python y Pandas.
-* Conversión de Excel a Apache Parquet.
-* PostgreSQL como base de datos operacional.
-* Carga incremental e idempotente.
-* Modelo dimensional basado en Star Schema.
-* Docker y Docker Compose.
-* Tests automatizados con pytest.
-* Continuous Integration mediante GitHub Actions.
-* Analytics mediante SQL, Pandas y Plotly.
-* Normalización y geocoding de direcciones.
-* Construcción de un dataset geográfico reutilizable de WYNFLEX.
-
----
-
-# 🏗️ Arquitectura actual
-
-```text
+ETL batch con Python y Pandas.
+Conversión de Excel a Apache Parquet.
+PostgreSQL como base de datos operacional.
+Carga incremental e idempotente.
+Modelo dimensional basado en Star Schema.
+Docker y Docker Compose.
+Tests automatizados con pytest.
+Continuous Integration mediante GitHub Actions.
+Analytics mediante SQL y Pandas.
+Visualizaciones mediante Matplotlib.
+Normalización y geocoding de direcciones.
+Construcción de un dataset geográfico reutilizable de WYNFLEX.
+🏗️ Arquitectura actual
                          WYNFLEX
                             │
                     Reportes Excel
@@ -74,112 +70,64 @@ Actualmente implementa:
                        analytics.py
                              │
                              ▼
-                   analytics.ipynb
-```
+              01_wynflex_analytics.ipynb
+                             │
+                             ▼
+                    KPIs + Matplotlib
+🔄 Flujo ETL
+1. Extract — src/extract.py
 
-## Enriquecimiento geográfico
-
-```text
-Direcciones de entregas
-          │
-          ▼
-Normalización
-          │
-          ▼
-Geocoding
-          │
-          ├── Latitud
-          ├── Longitud
-          ├── Barrio
-          └── Código postal
-                  │
-                  ▼
-       Dataset geográfico WYNFLEX
-                  │
-                  ▼
-              Analytics
-```
-
----
-
-# 🔄 Flujo ETL
-
-## 1. Extract — `src/extract.py`
-
-Los archivos Excel representan reportes semanales de la operación logística.
+Los archivos Excel representan reportes semanales reales de la operación logística.
 
 Entrada:
 
-```text
 data/raw/*.xlsx
-```
 
-El proceso:
+El proceso detecta automáticamente los archivos Excel y prepara los datos para las siguientes etapas del pipeline.
 
-* detecta automáticamente archivos Excel;
-* lee los archivos utilizando Pandas;
-* informa cantidad de filas y columnas;
-* genera los DataFrames de entrada para las siguientes etapas.
+2. Transform — src/transform.py
 
----
-
-## 2. Transform — `src/transform.py`
-
-La transformación se realiza individualmente sobre cada archivo.
+Cada archivo es procesado individualmente.
 
 Procesos implementados:
 
-* eliminación de filas completamente vacías;
-* eliminación de registros sin número de tracking;
-* eliminación de filas de resumen;
-* conversión de fechas;
-* normalización de texto;
-* conversión de códigos postales;
-* eliminación de duplicados por `numero_tracking`;
-* generación de archivos Parquet;
-* movimiento del Excel procesado a `data/processed/`.
+Eliminación de filas completamente vacías.
+Eliminación de registros sin número de tracking.
+Eliminación de filas de resumen.
+Conversión y normalización de fechas.
+Normalización de texto.
+Conversión de códigos postales.
+Eliminación de duplicados por numero_tracking.
+Generación de archivos Parquet.
+Movimiento del Excel procesado a data/processed/.
 
 Entrada:
 
-```text
 data/raw/*.xlsx
-```
 
 Salida:
 
-```text
 data/silver/*.parquet
-```
 
-Archivos originales procesados correctamente:
+Archivos originales procesados:
 
-```text
 data/processed/*.xlsx
-```
-
----
-
-# 📥 Carga incremental e idempotente — `src/load.py`
+📥 Carga incremental e idempotente — src/load.py
 
 Los archivos Parquet son cargados en PostgreSQL mediante la tabla:
 
-```text
 deliveries
-```
 
 Cada registro conserva el archivo de origen mediante:
 
-```text
 source_file
-```
 
 Esto permite identificar qué reportes ya fueron cargados.
 
-## Procesamiento incremental
+Procesamiento incremental
 
-El loader compara los archivos existentes en `data/silver/` con los valores de `source_file` almacenados en PostgreSQL.
+El loader compara los archivos existentes en data/silver/ con los valores de source_file almacenados en PostgreSQL.
 
-```text
 Parquet nuevo
      │
      ▼
@@ -189,73 +137,41 @@ Parquet nuevo
    │           │
    ▼           ▼
  cargar      omitir
-```
 
-Por lo tanto:
+Los archivos nuevos son incorporados y los que ya fueron procesados no vuelven a cargarse.
 
-* los archivos nuevos son incorporados;
-* los archivos ya procesados no vuelven a cargarse;
-* no es necesario realizar un `TRUNCATE` de `deliveries`.
+Idempotencia
 
-## Idempotencia
+La ejecución repetida del pipeline con los mismos archivos no genera nuevas cargas.
 
-La ejecución repetida del pipeline con los mismos archivos no genera duplicados.
+En otras palabras:
 
-Ejemplo real:
+Mismos archivos
+      ↓
+Mismo resultado
 
-```text
-Carga existente:
-919 entregas
+Si se incorpora una nueva semana:
 
-20-08-2026:
-+135
+Datos existentes
+      +
+Nuevo Excel
+      ↓
+Solo se incorpora el nuevo archivo
+⭐ Modelo dimensional — src/model.py
 
-27-08-2026:
-+200
+A partir de deliveries se construye un modelo dimensional basado en Star Schema.
 
-Total:
-1254 entregas
-```
-
-Al ejecutar nuevamente con los mismos archivos:
-
-```text
-Archivos nuevos:
-0
-
-Total:
-1254
-```
-
-Esto permite incorporar nuevas semanas manteniendo la información histórica existente.
-
----
-
-# ⭐ Modelo dimensional — `src/model.py`
-
-A partir de `deliveries` se construye un modelo dimensional basado en **Star Schema**.
-
-## Fact table
-
-```text
+Fact table
 fact_entregas
-```
-
-## Dimensions
-
-```text
+Dimensions
 dim_cliente
 dim_cadete
 dim_estado
 dim_zona
 dim_fecha
-```
 
-### `dim_fecha`
+La dimensión de fechas contiene atributos derivados como:
 
-La dimensión de fechas contiene atributos derivados:
-
-```text
 fecha_key
 fecha
 dia
@@ -265,27 +181,15 @@ trimestre
 año
 dia_semana
 nombre_dia
-```
 
-El modelo permite separar los datos operativos del modelo utilizado para análisis y reporting.
+Este modelo separa los datos operativos de las estructuras utilizadas para análisis y reporting.
 
----
+🗺️ Dataset geográfico de WYNFLEX
 
-# 🗺️ Dataset geográfico de WYNFLEX
+Durante el proyecto se desarrolló un dataset geográfico reutilizable para las direcciones de entrega.
 
-Una de las capacidades desarrolladas durante el proyecto fue la creación de un **dataset geográfico propio de las direcciones de entrega**.
+El proceso normaliza las direcciones y utiliza geocoding para obtener información como:
 
-En lugar de consultar el servicio de geocoding cada vez que una dirección aparece en una nueva entrega, las direcciones se almacenan en un cache reutilizable.
-
-Archivo actual:
-
-```text
-notebooks/geocoding_cache.csv
-```
-
-Cada dirección puede contener información como:
-
-```text
 direccion_original
 direccion_limpia
 lat
@@ -294,246 +198,123 @@ barrio
 cp_geocodificado
 display_name
 geocoding_status
-```
 
-## Ventaja del dataset
-
-Las entregas pueden repetirse durante diferentes días o semanas.
-
-Por ejemplo:
-
-```text
-Dirección A
-   │
-   ├── entrega 01/07
-   ├── entrega 08/07
-   ├── entrega 15/07
-   └── entrega 22/07
-```
-
-La dirección se geocodifica una sola vez y luego el resultado se reutiliza.
-
-Esto permite separar:
-
-```text
-Entregas
-```
-
-de:
-
-```text
-Ubicaciones geográficas
-```
-
-y evita consultas y procesamiento duplicados.
-
-## Estrategia de geocoding
-
-El proceso utiliza búsquedas progresivas:
-
-```text
-1. Dirección completa
-        │
-        ├── encontrada → guardar
-        │
-        └── no encontrada
-                ↓
-
-2. Última palabra + altura + CP
-        │
-        ├── encontrada → guardar
-        │
-        └── no encontrada
-                ↓
-
-3. Intersección + CP
-        │
-        ├── encontrada → guardar
-        │
-        └── no encontrada
-                ↓
-
-              not_found
-```
-
-Las intersecciones se tratan específicamente para casos como:
-
-```text
-Riestra y Portela
-Riestra y Mariano Acosta
-```
-
-## Validación geográfica
-
-Además del resultado del geocoder, se utiliza el código postal original de la operación como una segunda capa de validación.
-
-```text
-CP del Excel
-      │
-      ▼
-CP devuelto por geocoder
-      │
-      ├── coincide → ✅
-      └── diferente → ⚠️ revisar
-```
-
-El código postal se utiliza como mecanismo de **reafirmación de calidad**, no como único criterio para aceptar o rechazar una coordenada.
-
-## Estado del dataset geográfico
+Las direcciones se almacenan en un cache reutilizable para evitar repetir consultas sobre ubicaciones ya procesadas.
 
 Actualmente se procesaron:
 
-```text
 1.338 direcciones únicas
-```
 
 Resultado:
 
-```text
 found             928
 found_palabra     393
 found_v2            1
 not_found          16
 ----------------------
 Total            1338
-```
 
-Direcciones encontradas:
+Esto permitió enriquecer los datos de las entregas con información geográfica como barrio y coordenadas.
 
-```text
-1322 / 1338
-≈ 98,8 %
-```
+📊 Analytics — src/analytics.py
 
-Esto permitió enriquecer las entregas con información de barrio y coordenadas.
+Las funciones de Analytics consultan PostgreSQL y preparan los datos utilizados por el notebook.
 
----
+Actualmente incluye funciones para analizar:
 
-# 📊 Analytics — `src/analytics.py`
-
-Las funciones de analytics consultan PostgreSQL y preparan información para el notebook.
-
-Actualmente incluye análisis relacionados con:
-
-```text
 get_same_day_kpi()
 get_deliveries_by_status()
 get_deliveries_by_day()
 get_deliveries_by_client()
-```
 
-El proyecto utiliza SQL y Pandas para generar indicadores y agregaciones.
+El análisis combina SQL y Pandas para generar KPIs y agregaciones operativas.
 
----
+📓 Notebook — notebooks/01_wynflex_analytics.ipynb
 
-# 📓 Notebook — `notebooks/01_wynflex_analytics.ipynb`
+El notebook funciona como capa de Analytics y Reporting del proyecto.
 
-El notebook funciona como capa de **Analytics y Reporting**.
+A partir del modelo almacenado en PostgreSQL se generan KPIs y visualizaciones con Matplotlib.
 
-Actualmente incluye:
+KPI de eficiencia
 
-## KPI
+Se calcula la eficiencia de entregas como:
 
-Indicador de entregas same-day.
-
-## Entregas por estado
-
-Cantidad de entregas agrupadas por estado y porcentaje de eficiencia del cadete.
-
-La eficiencia se calcula como:
-
-```text
 Entregadas / Total de entregas × 100
-```
+Entregas por estado
 
-## Entregas por día
+Permite analizar la distribución de las entregas según su estado y visualizar la eficiencia del período analizado.
 
-Visualización de la evolución diaria de entregas mediante barras verticales.
+Entregas por día
 
-## Entregas por cliente
+Muestra la evolución diaria del volumen de entregas.
 
-Ranking de los **Top 30 clientes** por cantidad de entregas.
+Top 30 clientes
 
-## Pedidos por barrio
+Ranking de los principales clientes según cantidad de entregas.
 
-Ranking de los **Top 20 barrios** por cantidad de pedidos.
+Top 15 barrios
 
-Todos los gráficos incluyen el período de días analizados para contextualizar los resultados.
+Distribución de pedidos entregados según los barrios geocodificados.
 
----
+Flujo diario de los Top 3 clientes
 
-# 📈 Datos actuales
+Analiza la variación diaria del volumen de pedidos recibido por los tres principales clientes.
 
-El pipeline fue evolucionando mediante la incorporación de reportes semanales.
+📈 Visualizaciones
 
-Actualmente PostgreSQL contiene:
+Las visualizaciones se generan mediante Matplotlib y se almacenan en:
 
-```text
-1.254 entregas
-```
+outputs/visualizaciones/
+Entregas por estado
 
-Luego se incorporaron nuevas cargas para continuar la evolución del dataset.
 
-Durante el procesamiento geográfico actual se identificaron:
 
-```text
-1.338 direcciones únicas
-```
 
-La cantidad de direcciones puede ser mayor al número de archivos debido a que una misma dirección puede aparecer en distintas entregas y semanas.
+Entregas realizadas por día
 
-Estados operativos encontrados:
 
-```text
-Entregado
-Entregado 2DA visita
-En camino al destinatario
-En camino reprogramado
-Nadie
-```
 
----
 
-# 🧪 Testing
+Top 30 clientes
 
-El proyecto utiliza `pytest` para realizar pruebas automatizadas.
+
+
+
+Top 15 barrios
+
+
+
+
+Flujo diario — Top 3 clientes
+
+
+
+
+
+
+
+
+
+
+🧪 Testing
+
+El proyecto utiliza pytest para realizar pruebas automatizadas.
 
 Test principal:
 
-```text
 tests/test_transform.py
-```
 
-El test verifica el comportamiento de la transformación de los archivos de entrada.
+También existen pruebas relacionadas con el proceso de geocoding.
 
-Estado actual:
-
-```text
-1 passed
-```
-
-También existe:
-
-```text
-src/test_geocoding.py
-```
-
-para pruebas relacionadas con el proceso de geocoding.
-
----
-
-# ⚙️ Continuous Integration
+⚙️ Continuous Integration
 
 GitHub Actions ejecuta automáticamente el proceso de integración continua ante:
 
-```text
 push → master
 Pull Request
-```
 
 El workflow realiza:
 
-```text
 Checkout
    ↓
 Setup Python
@@ -545,79 +326,49 @@ Syntax Check
 pytest
    ↓
 Docker Build
-```
-
-Estado actual:
-
-```text
-CI → Success ✅
-```
-
----
-
-# 🐳 Docker
+🐳 Docker
 
 El proyecto está dockerizado mediante:
 
-```text
 Dockerfile
 docker-compose.yml
-```
 
 PostgreSQL se ejecuta mediante Docker Compose.
 
-El entorno de desarrollo utiliza:
+Entorno utilizado:
 
-```text
 WSL
 Python virtual environment
 VS Code
 Docker
 PostgreSQL
-```
-
----
-
-# 🛠️ Tecnologías
-
-## Data Engineering
-
-* Python
-* Pandas
-* SQL
-* PostgreSQL
-* Apache Parquet
-* Star Schema
-
-## Analytics
-
-* Jupyter Notebook
-* Pandas
-* Plotly
-
-## Geospatial
-
-* OpenStreetMap
-* Nominatim
-* Geocoding
-* Address normalization
-* Geographic enrichment
-* Dataset geográfico reutilizable
-
-## DevOps
-
-* Docker
-* Docker Compose
-* Git
-* GitHub
-* GitHub Actions
-* pytest
-
----
-
-# 📁 Estructura del proyecto
-
-```text
+🛠️ Tecnologías
+Data Engineering
+Python
+Pandas
+SQL
+PostgreSQL
+Apache Parquet
+Star Schema
+Analytics
+Jupyter Notebook
+Pandas
+Matplotlib
+Geospatial
+OpenStreetMap
+Nominatim
+Geocoding
+Address normalization
+Geographic enrichment
+Dataset geográfico reutilizable
+DevOps
+Docker
+Docker Compose
+Git
+GitHub
+GitHub Actions
+pytest
+📁 Estructura del proyecto
 WYNFLEX/
 │
 ├── .github/
@@ -627,12 +378,21 @@ WYNFLEX/
 ├── data/
 │   ├── raw/
 │   ├── processed/
-│   ├── silver/
-│   └── gold/
+│   └── silver/
 │
 ├── notebooks/
 │   ├── 01_wynflex_analytics.ipynb
 │   └── geocoding_cache.csv
+│
+├── outputs/
+│   └── visualizaciones/
+│       ├── 01_entregas_por_estado.png
+│       ├── 02_entregas_por_dia.png
+│       ├── 03_top_30_clientes.png
+│       ├── 04_top_15_barrios.png
+│       ├── 05_cliente_top_1.png
+│       ├── 05_cliente_top_2.png
+│       └── 05_cliente_top_3.png
 │
 ├── sql/
 │   ├── analytics.sql
@@ -646,8 +406,7 @@ WYNFLEX/
 │   ├── load.py
 │   ├── model.py
 │   ├── analytics.py
-│   ├── visualizations.py
-│   └── test_geocoding.py
+│   └── visualizations.py
 │
 ├── tests/
 │   └── test_transform.py
@@ -658,82 +417,106 @@ WYNFLEX/
 ├── requirements.txt
 ├── .gitignore
 └── README.md
-```
+✅ Implementado
 
----
+Extracción de archivos Excel
 
-# ✅ Implementado
+Limpieza y transformación de datos
 
-* [x] Extracción de archivos Excel
-* [x] Limpieza y transformación de datos
-* [x] Conversión a Parquet
-* [x] Separación RAW / SILVER / PROCESSED
-* [x] PostgreSQL
-* [x] Carga desde Parquet
-* [x] Trazabilidad mediante `source_file`
-* [x] Procesamiento incremental
-* [x] Carga idempotente
-* [x] Star Schema
-* [x] Dimensiones de cliente, cadete, estado, zona y fecha
-* [x] Docker
-* [x] Docker Compose
-* [x] pytest
-* [x] GitHub Actions
-* [x] Continuous Integration
-* [x] Analytics con SQL + Pandas
-* [x] Visualizaciones con Plotly
-* [x] Normalización de direcciones
-* [x] Geocoding
-* [x] Cache de direcciones
-* [x] Dataset geográfico de WYNFLEX
-* [x] Enriquecimiento con barrio y coordenadas
-* [x] Análisis de pedidos por barrio
-* [x] Analytics por cliente
-* [x] Analytics por día
-* [x] KPI operativo
+Conversión a Parquet
 
----
+Separación RAW / SILVER / PROCESSED
 
-# 🚧 Roadmap
+PostgreSQL
 
-## Próximas etapas
+Trazabilidad mediante source_file
 
-* [ ] Mejorar la resolución de direcciones restantes
-* [ ] Mover el cache geográfico desde `notebooks/` hacia una ubicación de datos dedicada
-* [ ] Incorporar formalmente una capa GOLD
-* [ ] Azure Data Lake Storage Gen2
-* [ ] Integración con Power BI
-* [ ] Dashboard orientado a reporting operativo
-* [ ] Logging estructurado
-* [ ] Monitoreo
-* [ ] Alertas
-* [ ] **Continuous Deployment (CD)**
-* [ ] Automatización completa del pipeline
-* [ ] Evaluar Spark cuando el volumen de datos lo justifique
+Procesamiento incremental
 
----
+Carga idempotente
 
-# 🎯 Objetivo
+Star Schema
 
-Construir progresivamente un pipeline de datos **reproducible, incremental, idempotente y orientado a producción**, aplicando buenas prácticas de:
+Dimensiones de cliente, cadete, estado, zona y fecha
 
-* Data Engineering
-* ETL
-* Data Warehousing
-* Analytics
-* Data Quality
-* Geospatial Data
-* Docker
-* Testing
-* Continuous Integration
-* Continuous Deployment
-* Cloud Computing
+Docker
 
-El proyecto busca transformar datos operativos de una empresa logística en **información útil para reporting, análisis de la operación y toma de decisiones**.
+Docker Compose
+
+pytest
+
+GitHub Actions
+
+Continuous Integration
+
+Analytics con SQL + Pandas
+
+Visualizaciones con Matplotlib
+
+Normalización de direcciones
+
+Geocoding
+
+Cache de direcciones
+
+Dataset geográfico de WYNFLEX
+
+Enriquecimiento con barrio y coordenadas
+
+Análisis de pedidos por barrio
+
+Analytics por cliente
+
+Analytics por día
+
+KPI operativo
+
+🚧 Roadmap
+
+Mejorar la resolución de direcciones restantes.
+
+Mover el cache geográfico hacia una ubicación de datos dedicada.
+
+Incorporar formalmente una capa GOLD.
+
+Migrar parte de la arquitectura a Azure Data Lake Storage Gen2.
+
+Integración con Power BI.
+
+Dashboard orientado a reporting operativo.
+
+Logging estructurado.
+
+Monitoreo.
+
+Alertas.
+
+Continuous Deployment (CD).
+
+Automatización completa del pipeline.
+
+Evaluar Spark cuando el volumen de datos lo justifique.
+
+🎯 Objetivo
+
+Construir progresivamente un pipeline de datos reproducible, incremental, idempotente y orientado a producción, aplicando buenas prácticas de:
+
+Data Engineering
+ETL
+Data Warehousing
+Analytics
+Data Quality
+Geospatial Data
+Docker
+Testing
+Continuous Integration
+Continuous Deployment
+Cloud Computing
+
+WYNFLEX nació a partir de una necesidad real de la operación logística y busca transformar datos operativos en información útil para reporting, análisis del rendimiento y toma de decisiones.
 
 La evolución prevista es:
 
-```text
 Excel
   ↓
 ETL
@@ -753,4 +536,3 @@ Power BI
 Azure
   ↓
 Automatización / CD
-```
