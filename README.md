@@ -576,6 +576,37 @@ Ranking de los **Top 30 clientes** por cantidad de entregas.
 Ranking de los **Top 20 barrios** por cantidad de pedidos.
 
 Todos los gráficos incluyen el período de días analizados para contextualizar los resultados.
+# 📈 Visualizaciones
+
+Las visualizaciones se generan mediante Matplotlib y se almacenan en:
+
+```text
+outputs/visualizaciones/
+```
+
+### Entregas por estado
+
+![Entregas por estado](outputs/visualizaciones/01_entregas_por_estado.png)
+
+### Entregas realizadas por día
+
+![Entregas por día](outputs/visualizaciones/02_entregas_por_dia.png)
+
+### Top 30 clientes
+
+![Top 30 clientes](outputs/visualizaciones/03_top_30_clientes.png)
+
+### Top 15 barrios
+
+![Top 15 barrios](outputs/visualizaciones/04_top_15_barrios.png)
+
+### Flujo diario — Top 3 clientes
+
+![Cliente Top 1](outputs/visualizaciones/05_cliente_top_1.png)
+
+![Cliente Top 2](outputs/visualizaciones/05_cliente_top_2.png)
+
+![Cliente Top 3](outputs/visualizaciones/05_cliente_top_3.png)
 
 ---
 
